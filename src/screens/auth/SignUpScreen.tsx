@@ -16,7 +16,7 @@ import type { AuthStackParamList } from '@appTypes/index';
 import { palette, colors } from '@theme/colors';
 import { typography } from '@theme/typography';
 import { spacing, radius, shadows } from '@theme/spacing';
-import { useAuthStore } from '@store/authStore';
+import { useAppStore } from '@store/index';
 import { isValidEmail, isValidPassword } from '@utils/helpers';
 import { Button }    from '@components/ui/Button';
 import { TextInput } from '@components/ui/TextInput';
@@ -39,14 +39,16 @@ const passwordStrength = (pw: string): { score: number; label: string; color: st
 
 export const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const { signUp, isLoading, error, clearError } = useAuthStore();
+  const { signup } = useAppStore();
 
   const [name,        setName]        = useState('');
   const [email,       setEmail]       = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [password,    setPassword]    = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [showPass,    setShowPass]    = useState(false);
   const [agreed,      setAgreed]      = useState(false);
+  const [error,       setError]       = useState('');
 
   const [nameErr,        setNameErr]        = useState('');
   const [emailErr,       setEmailErr]       = useState('');
@@ -73,7 +75,7 @@ export const SignUpScreen: React.FC = () => {
   const validate = (): boolean => {
     let valid = true;
     setNameErr(''); setEmailErr(''); setPasswordErr('');
-    setConfirmPassErr(''); setAgreeErr(''); clearError();
+    setConfirmPassErr(''); setAgreeErr('');
 
     if (name.trim().length < 2) {
       setNameErr('Enter your full name (at least 2 characters)');
@@ -100,7 +102,10 @@ export const SignUpScreen: React.FC = () => {
 
   const handleSignUp = async () => {
     if (!validate()) { shake(); return; }
-    await signUp(name.trim(), email.trim().toLowerCase(), password);
+    setIsSubmitting(true);
+    setError('');
+    await signup(name.trim(), email.trim().toLowerCase(), password);
+    setIsSubmitting(false);
   };
 
   return (
@@ -155,7 +160,7 @@ export const SignUpScreen: React.FC = () => {
             Create your account
           </Text>
 
-          {error && (
+          {error !== '' && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>⚠️  {error}</Text>
             </View>
@@ -267,7 +272,7 @@ export const SignUpScreen: React.FC = () => {
             onPress={handleSignUp}
             variant="primary"
             size="lg"
-            isLoading={isLoading}
+            isLoading={isSubmitting}
             fullWidth
             style={styles.createBtn}
           />

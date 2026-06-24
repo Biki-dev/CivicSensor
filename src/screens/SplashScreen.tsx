@@ -12,7 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@appTypes/index';
 import { palette } from '@theme/colors';
 import { typography } from '@theme/typography';
-import { useAuthStore } from '@store/authStore';
+import { useAppStore } from '@store/index';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,7 +20,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 export const SplashScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user } = useAppStore();
 
   // Animation values
   const logoScale   = useRef(new Animated.Value(0.5)).current;

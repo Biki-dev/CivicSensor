@@ -1,16 +1,20 @@
 import { create } from 'zustand';
-import { 
-  UserProfile, 
-  Issue, 
-  Badge, 
-  Challenge, 
-  AppNotification, 
-  IssueCategory, 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  UserProfile,
+  Issue,
+  Badge,
+  Challenge,
+  AppNotification,
+  IssueCategory,
   UrgencyLevel,
-  GeoPoint
+  GeoPoint,
 } from '@appTypes/index';
 import { getLevelFromPoints, getLevelProgress, BADGES } from '@constants/index';
 export { useAuthStore } from './authStore';
+
+const AUTH_STORAGE_KEY = 'CIVIC_SENSOR_AUTH';
+
 interface AppState {
   // Auth
   isAuthenticated: boolean;
@@ -23,10 +27,11 @@ interface AppState {
   challenges: Challenge[];
   
   // Actions
-  login: (email: string) => void;
-  logout: () => void;
-  signup: (name: string, email: string, neighborhoodName: string) => void;
-  completeOnboarding: (neighborhoodName: string) => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
+  completeOnboarding: (neighborhoodName: string) => Promise<void>;
+  restoreSession: () => Promise<void>;
   
   // Issue Actions
   addIssue: (
@@ -225,35 +230,84 @@ export const useAppStore = create<AppState>((set, get) => ({
   notifications: INITIAL_NOTIFICATIONS,
   challenges: INITIAL_CHALLENGES,
   
-  login: (email: string) => {
+  restoreSession: async () => {
+    try {
+      const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as UserProfile;
+      set({
+        user: stored,
+        isAuthenticated: true,
+        isOnboarded: stored.onboardingComplete,
+      });
+    } catch {
+      // ignore restore failures
+    }
+  },
+  
+  login: async (email: string, password: string) => {
+    const user = DEFAULT_PROFILE('Elena Rostova', email, 'Greenview Valley');
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
     set({
       isAuthenticated: true,
       isOnboarded: true,
-      user: DEFAULT_PROFILE('Elena Rostova', email, 'Greenview Valley')
+      user,
     });
   },
   
-  logout: () => {
+  logout: async () => {
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
     set({
       isAuthenticated: false,
       isOnboarded: false,
-      user: null
+      user: null,
     });
   },
   
-  signup: (name: string, email: string, neighborhoodName: string) => {
+  signup: async (name: string, email: string, _password: string) => {
+    const newUser = DEFAULT_PROFILE(name, email, '');
+    newUser.onboardingComplete = false;
+    newUser.neighborhoodName = '';
+    newUser.neighborhoodId = 'pending';
+    newUser.points = 0;
+    newUser.level = 'newcomer';
+    newUser.levelProgress = 0;
+    newUser.streakDays = 0;
+    newUser.badges = [];
+    newUser.reportCount = 0;
+    newUser.verificationCount = 0;
+    newUser.fixedIssueCount = 0;
+    newUser.credibilityScore = 50;
+    newUser.accuracyRate = 1;
+    newUser.createdAt = new Date().toISOString();
+    newUser.updatedAt = new Date().toISOString();
+    newUser.onboardingComplete = false;
+
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
     set({
       isAuthenticated: true,
-      isOnboarded: true,
-      user: DEFAULT_PROFILE(name, email, neighborhoodName)
+      isOnboarded: false,
+      user: newUser,
     });
   },
   
-  completeOnboarding: (neighborhoodName: string) => {
+  completeOnboarding: async (neighborhoodName: string) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
+
+    const updatedUser = {
+      ...currentUser,
+      neighborhoodName,
+      neighborhoodId: `nb-${neighborhoodName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      onboardingComplete: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
     set({
       isOnboarded: true,
       isAuthenticated: true,
-      user: DEFAULT_PROFILE('New Citizen', 'new@civic.org', neighborhoodName)
+      user: updatedUser,
     });
   },
   

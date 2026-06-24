@@ -28,7 +28,7 @@ export default function LoginScreen({ navigation }: any) {
     if (!email || !password) return;
     setIsSubmitting(true);
     setTimeout(() => {
-      login(email);
+      login(email, password);
       setIsSubmitting(false);
     }, 800);
   };

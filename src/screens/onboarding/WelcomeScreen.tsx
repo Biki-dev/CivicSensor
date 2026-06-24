@@ -15,7 +15,7 @@ import type { OnboardingStackParamList } from '@appTypes/index';
 import { palette, colors } from '@theme/colors';
 import { typography } from '@theme/typography';
 import { spacing, radius, shadows } from '@theme/spacing';
-import { useAuthStore } from '@store/authStore';
+import { useAppStore } from '@store/index';
 import { Button } from '@components/ui/Button';
 
 const { width, height } = Dimensions.get('window');
@@ -31,7 +31,7 @@ const FEATURES = [
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const { user } = useAuthStore();
+  const { user } = useAppStore();
 
   // Staggered animation values
   const headerOpacity = useRef(new Animated.Value(0)).current;

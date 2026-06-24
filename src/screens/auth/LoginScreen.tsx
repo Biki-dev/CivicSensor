@@ -17,7 +17,7 @@ import type { AuthStackParamList } from '@appTypes/index';
 import { palette, colors } from '@theme/colors';
 import { typography } from '@theme/typography';
 import { spacing, radius, shadows } from '@theme/spacing';
-import { useAuthStore } from '@store/authStore';
+import { useAppStore } from '@store/index';
 import { isValidEmail, isValidPassword } from '@utils/helpers';
 import { Button }    from '@components/ui/Button';
 import { TextInput } from '@components/ui/TextInput';
@@ -27,13 +27,13 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const { login, isLoading, error, clearError } = useAuthStore();
-
+  const { login } = useAppStore();
   const [email,       setEmail]       = useState('');
   const [password,    setPassword]    = useState('');
-  const [showPass,    setShowPass]    = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailErr,    setEmailErr]    = useState('');
   const [passwordErr, setPasswordErr] = useState('');
+  const [showPass,    setShowPass]    = useState(false);
 
   const passwordRef = useRef<any>(null);
   const shakeAnim   = useRef(new Animated.Value(0)).current;
@@ -51,7 +51,6 @@ export const LoginScreen: React.FC = () => {
     let valid = true;
     setEmailErr('');
     setPasswordErr('');
-    clearError();
 
     if (!isValidEmail(email)) {
       setEmailErr('Enter a valid email address');
@@ -66,8 +65,9 @@ export const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     if (!validate()) { shake(); return; }
-    const success = await login(email.trim().toLowerCase(), password);
-    if (!success) shake();
+    setIsSubmitting(true);
+    await login(email.trim().toLowerCase(), password);
+    setIsSubmitting(false);
   };
 
   return (
@@ -108,11 +108,7 @@ export const LoginScreen: React.FC = () => {
           </Text>
 
           {/* API-level error banner */}
-          {error && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>⚠️  {error}</Text>
-            </View>
-          )}
+          {/* Authentication errors are validated locally in the form. */}
 
           <TextInput
             label="Email address"
@@ -157,7 +153,7 @@ export const LoginScreen: React.FC = () => {
             onPress={handleLogin}
             variant="primary"
             size="lg"
-            isLoading={isLoading}
+            isLoading={isSubmitting}
             fullWidth
             style={styles.signInBtn}
           />

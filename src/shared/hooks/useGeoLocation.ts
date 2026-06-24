@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
 import type { GeoPoint } from '@appTypes/index';
 
 const requestPermission = async (): Promise<boolean> => {
@@ -27,8 +26,15 @@ export const useGeoLocation = () => {
       }
 
       setLoading(true);
-      Geolocation.getCurrentPosition(
-        position => {
+      const geo = (navigator as any)?.geolocation;
+      if (!geo) {
+        setError('Geolocation is unavailable');
+        setLoading(false);
+        return;
+      }
+
+      geo.getCurrentPosition(
+        (position: any) => {
           setLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
