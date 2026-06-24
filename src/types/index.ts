@@ -435,6 +435,8 @@ export type MainTabParamList = {
   Feed: undefined;
   Map: undefined;
   Authorities: undefined;
+  Heatmap: undefined;
+  Leaderboard: undefined;
   Profile: undefined;
 };
 

@@ -13,6 +13,8 @@ import FeedScreen    from '@screens/FeedScreen';
 import ReportScreen  from '@screens/ReportScreen';
 import MapScreen     from '@screens/MapScreen';
 import ProfileScreen from '@screens/ProfileScreen';
+import HeatmapScreen from '@screens/HeatmapScreen';
+import LeaderboardScreen from '@screens/LeaderboardScreen';
 import AuthorityListScreen from '@screens/AuthorityListScreen';
 import AuthorityDetailScreen from '@screens/AuthorityDetailScreen';
 
@@ -34,6 +36,8 @@ const TAB_ICONS: Record<keyof MainTabParamList, { active: string; inactive: stri
   Feed:    { active: '📋',  inactive: '📋',  label: 'Feed'    },
   Map:     { active: '🗺️',  inactive: '🗺️',  label: 'Map'     },
   Authorities: { active: '🏛️', inactive: '🏛️', label: 'Authorities' },
+  Heatmap: { active: '🌡️', inactive: '🌡️', label: 'Heatmap' },
+  Leaderboard: { active: '🏆', inactive: '🏆', label: 'Leaderboard' },
   Profile: { active: '👤',  inactive: '👤',  label: 'Profile' },
 };
 
@@ -110,6 +114,16 @@ export const MainTabNavigator: React.FC = () => (
       name="Authorities"
       component={AuthoritiesStackScreen}
       options={{ tabBarLabel: 'Authorities' }}
+    />
+    <Tab.Screen
+      name="Heatmap"
+      component={HeatmapScreen}
+      options={{ tabBarLabel: 'Heatmap' }}
+    />
+    <Tab.Screen
+      name="Leaderboard"
+      component={LeaderboardScreen}
+      options={{ tabBarLabel: 'Leaderboard' }}
     />
     <Tab.Screen
       name="Profile"

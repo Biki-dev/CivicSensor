@@ -18,6 +18,7 @@ import {
   WorkOrderStatus,
   AuthorityResponse,
 } from '@appTypes/index';
+import { pollWorkOrderStatus } from '../services/authorityService';
 import { getLevelFromPoints, getLevelProgress, BADGES } from '@constants/index';
 export { useAuthStore } from './authStore';
 
@@ -79,6 +80,8 @@ interface AppState {
   createWorkOrder: (issueId: string, authorityId: string, note?: string) => string;
   updateIssueStatusFromAuthority: (workOrderId: string, status: WorkOrderStatus, message?: string) => void;
   fetchAuthorityStatus: (authorityId: string) => Promise<AuthorityResponse | null>;
+  startWorkOrderPoller: () => void;
+  stopWorkOrderPoller: () => void;
   
   // Notifications
   markAllNotificationsRead: () => void;
@@ -315,6 +318,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch {
       // ignore restore failures
     }
+    // start background poller on restore
+    try { get().startWorkOrderPoller(); } catch {}
   },
   
   login: async (email: string, password: string) => {
@@ -325,6 +330,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       isOnboarded: true,
       user,
     });
+    // start background poller
+    try { get().startWorkOrderPoller(); } catch {}
   },
   
   logout: async () => {
@@ -334,6 +341,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       isOnboarded: false,
       user: null,
     });
+    // stop polling when logged out
+    try { get().stopWorkOrderPoller(); } catch {}
   },
   
   signup: async (name: string, email: string, _password: string) => {
@@ -542,6 +551,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     return workOrderId;
+  },
+
+  // Polling control for work orders — calls authorityService.pollWorkOrderStatus
+  startWorkOrderPoller: () => {
+    // keep a single interval per app instance
+    // store interval id in closure
+    // @ts-ignore
+    if ((global as any).__civic_workorder_poller) return;
+    // poll every 15s
+    const id = setInterval(async () => {
+      const openWOs = get().workOrders.filter(w => w.status === 'open' || w.status === 'in_progress');
+      for (const wo of openWOs) {
+        try {
+          const resp = await pollWorkOrderStatus(wo.id);
+          if (resp && resp.status && resp.status !== wo.status) {
+            get().updateIssueStatusFromAuthority(wo.id as string, resp.status as WorkOrderStatus, resp.message);
+          }
+        } catch (e) {
+          // ignore transient polling errors
+        }
+      }
+    }, 15000);
+    // @ts-ignore
+    (global as any).__civic_workorder_poller = id;
+  },
+
+  stopWorkOrderPoller: () => {
+    // @ts-ignore
+    const id = (global as any).__civic_workorder_poller;
+    if (id) {
+      clearInterval(id);
+      // @ts-ignore
+      (global as any).__civic_workorder_poller = null;
+    }
   },
 
   updateIssueStatusFromAuthority: (workOrderId, status, message) => {
