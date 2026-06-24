@@ -292,6 +292,57 @@ export interface AppNotification {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SOCIAL FEATURES (PHASE 4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface Comment {
+  id: string;
+  issueId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  text: string;
+  likeCount: number;
+  likedByIds: string[];
+  replyCount: number;
+  replies: Comment[];      // nested replies (1 level max)
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  recipientId: string;
+  text: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  participantIds: [string, string];  // two-user conversation
+  participant1Name: string;
+  participant1Avatar?: string;
+  participant2Name: string;
+  participant2Avatar?: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  unreadCount: number;  // for current user
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserFollow {
+  userId: string;           // person being followed
+  followerId: string;       // person who follows
+  followedAt: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // API / NETWORK
 // ─────────────────────────────────────────────────────────────────────────────
 

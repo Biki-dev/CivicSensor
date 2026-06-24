@@ -9,6 +9,10 @@ import {
   IssueCategory,
   UrgencyLevel,
   GeoPoint,
+  Comment,
+  DirectMessage,
+  Conversation,
+  UserFollow,
 } from '@appTypes/index';
 import { getLevelFromPoints, getLevelProgress, BADGES } from '@constants/index';
 export { useAuthStore } from './authStore';
@@ -25,6 +29,13 @@ interface AppState {
   issues: Issue[];
   notifications: AppNotification[];
   challenges: Challenge[];
+  
+  // Social (Phase 4)
+  comments: Comment[];
+  conversations: Conversation[];
+  directMessages: DirectMessage[];
+  followers: UserFollow[];      // users following the current user
+  following: UserFollow[];       // users the current user follows
   
   // Actions
   login: (email: string, password: string) => Promise<void>;
@@ -44,6 +55,19 @@ interface AppState {
   ) => void;
   verifyIssue: (issueId: string, userId: string) => void;
   disputeIssue: (issueId: string, userId: string) => void;
+  
+  // Social Actions (Phase 4)
+  addComment: (issueId: string, userId: string, userName: string, userAvatar: string | undefined, text: string) => void;
+  likeComment: (commentId: string, userId: string) => void;
+  addReply: (commentId: string, userId: string, userName: string, userAvatar: string | undefined, text: string) => void;
+  
+  sendDirectMessage: (conversationId: string, senderId: string, senderName: string, senderAvatar: string | undefined, recipientId: string, text: string) => void;
+  getOrCreateConversation: (otherUserId: string, otherUserName: string, otherUserAvatar: string | undefined) => string;
+  markConversationAsRead: (conversationId: string) => void;
+  
+  followUser: (userId: string, followerName: string) => void;
+  unfollowUser: (userId: string) => void;
+  getFollowCount: (userId: string) => { followers: number; following: number };
   
   // Notifications
   markAllNotificationsRead: () => void;
@@ -229,6 +253,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   issues: INITIAL_ISSUES,
   notifications: INITIAL_NOTIFICATIONS,
   challenges: INITIAL_CHALLENGES,
+  comments: [],
+  conversations: [],
+  directMessages: [],
+  followers: [],
+  following: [],
   
   restoreSession: async () => {
     try {
@@ -453,5 +482,184 @@ export const useAppStore = create<AppState>((set, get) => ({
         notifications: updatedNotifications
       };
     });
-  }
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SOCIAL METHODS (PHASE 4)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  addComment: (issueId, userId, userName, userAvatar, text) => {
+    const newComment: Comment = {
+      id: `comment-${Date.now()}`,
+      issueId,
+      authorId: userId,
+      authorName: userName,
+      authorAvatar: userAvatar,
+      text,
+      likeCount: 0,
+      likedByIds: [],
+      replyCount: 0,
+      replies: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    set(state => ({
+      comments: [newComment, ...state.comments],
+    }));
+
+    get().awardPoints(2, 'Commented on an issue');
+  },
+
+  likeComment: (commentId, userId) => {
+    set(state => {
+      const updatedComments = state.comments.map(comment => {
+        if (comment.id !== commentId) return comment;
+        if (comment.likedByIds.includes(userId)) return comment;
+
+        return {
+          ...comment,
+          likedByIds: [...comment.likedByIds, userId],
+          likeCount: comment.likeCount + 1,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      return { comments: updatedComments };
+    });
+  },
+
+  addReply: (commentId, userId, userName, userAvatar, text) => {
+    const newReply: Comment = {
+      id: `reply-${Date.now()}`,
+      issueId: '', // replies don't need issueId
+      authorId: userId,
+      authorName: userName,
+      authorAvatar: userAvatar,
+      text,
+      likeCount: 0,
+      likedByIds: [],
+      replyCount: 0,
+      replies: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    set(state => {
+      const updatedComments = state.comments.map(comment => {
+        if (comment.id !== commentId) return comment;
+
+        return {
+          ...comment,
+          replies: [newReply, ...comment.replies],
+          replyCount: comment.replyCount + 1,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      return { comments: updatedComments };
+    });
+
+    get().awardPoints(2, 'Replied to a comment');
+  },
+
+  sendDirectMessage: (conversationId, senderId, senderName, senderAvatar, recipientId, text) => {
+    const newMessage: DirectMessage = {
+      id: `msg-${Date.now()}`,
+      conversationId,
+      senderId,
+      senderName,
+      senderAvatar,
+      recipientId,
+      text,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    set(state => ({
+      directMessages: [newMessage, ...state.directMessages],
+    }));
+  },
+
+  getOrCreateConversation: (otherUserId, otherUserName, otherUserAvatar) => {
+    const currentUser = get().user;
+    if (!currentUser) return '';
+
+    const existingConvo = get().conversations.find(
+      c => c.participantIds.includes(currentUser.id) && c.participantIds.includes(otherUserId)
+    );
+
+    if (existingConvo) return existingConvo.id;
+
+    const newConvoId = `convo-${Date.now()}`;
+    const newConversation: Conversation = {
+      id: newConvoId,
+      participantIds: [currentUser.id, otherUserId],
+      participant1Name: currentUser.displayName,
+      participant1Avatar: currentUser.avatarUrl,
+      participant2Name: otherUserName,
+      participant2Avatar: otherUserAvatar,
+      unreadCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    set(state => ({
+      conversations: [newConversation, ...state.conversations],
+    }));
+
+    return newConvoId;
+  },
+
+  markConversationAsRead: (conversationId) => {
+    set(state => {
+      const updatedConversations = state.conversations.map(convo => {
+        if (convo.id !== conversationId) return convo;
+        return { ...convo, unreadCount: 0, updatedAt: new Date().toISOString() };
+      });
+
+      const updatedMessages = state.directMessages.map(msg => {
+        if (msg.conversationId !== conversationId) return msg;
+        return { ...msg, isRead: true };
+      });
+
+      return {
+        conversations: updatedConversations,
+        directMessages: updatedMessages,
+      };
+    });
+  },
+
+  followUser: (userId, followerName) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
+
+    const newFollow: UserFollow = {
+      userId,
+      followerId: currentUser.id,
+      followedAt: new Date().toISOString(),
+    };
+
+    set(state => ({
+      following: [...state.following, newFollow],
+    }));
+
+    get().awardPoints(1, `Followed ${followerName}`);
+  },
+
+  unfollowUser: (userId) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
+
+    set(state => ({
+      following: state.following.filter(f => !(f.userId === userId && f.followerId === currentUser.id)),
+    }));
+  },
+
+  getFollowCount: (userId) => {
+    const followers = get().followers.filter(f => f.userId === userId).length;
+    const following = get().following.filter(f => f.followerId === userId).length;
+    return { followers, following };
+  },
 }));
+
