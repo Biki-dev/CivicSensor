@@ -13,6 +13,7 @@ import { colors, palette } from '@theme/colors';
 import { spacing, radius, shadows } from '@theme/spacing';
 import { typography } from '@theme/typography';
 import Svg, { Rect, Circle, Line, Path, G } from 'react-native-svg';
+import OSMMapView from '@components/OSMMapView';
 import { ISSUE_CATEGORIES } from '@constants/index';
 import { Issue } from '@appTypes/index';
 
@@ -45,8 +46,11 @@ export default function MapScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
 
-      {/* Styled Mock Map Canvas */}
+      {/* Map: SVG mock or OSM interactive map */}
       <View style={styles.mapContainer}>
+        {/* If you have react-native-maps installed OSMMapView will render an interactive map */}
+        <OSMMapView />
+        {/* The legacy SVG mock map remains below for environments without native map libs */}
         <Svg width={width - 20} height={MAP_HEIGHT} style={styles.mapSvg}>
           {/* Background Map Tint */}
           <Rect width="100%" height="100%" fill="#E9EEF4" rx={radius.card} />
@@ -179,7 +183,7 @@ export default function MapScreen({ navigation }: any) {
               </Text>
             </View>
 
-            {user && selectedIssue.reportedById !== user.id && !selectedIssue.verifiedByIds.includes(user.id) ? (
+            {user && selectedIssue.reportedById !== user.id && selectedIssue.verifiedByIds.indexOf(user.id) === -1 ? (
               <TouchableOpacity 
                 style={styles.drawerVerifyBtn}
                 onPress={() => verifyIssue(selectedIssue.id, user.id)}

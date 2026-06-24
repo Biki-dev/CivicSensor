@@ -26,7 +26,7 @@ export const useGeoLocation = () => {
       }
 
       setLoading(true);
-      const geo = (navigator as any)?.geolocation;
+      const geo = (globalThis as any).navigator?.geolocation;
       if (!geo) {
         setError('Geolocation is unavailable');
         setLoading(false);
