@@ -117,6 +117,26 @@ export const colors = {
   badgeBronze:     palette.bronze,
   xpAccent:        palette.xpPurple,
   streakFire:      '#FF4500',
+
+  // ── Direct palette aliases (convenience — avoid importing palette separately) ──
+  coral:           palette.coral,
+  coralDeep:       palette.coralDeep,
+  coralSoft:       palette.coralSoft,
+  amber:           palette.amber,
+  amberDeep:       palette.amberDeep,
+  amberSoft:       palette.amberSoft,
+  tealMid:         palette.tealMid,
+  tealSoft:        palette.tealSoft,
+  navyMid:         palette.navyMid,
+  navyLight:       palette.navyLight,
+  navyDeep:        palette.navyDeep,
+  slateMid:        palette.slateMid,
+  slateGray:       palette.slateGray,
+  white:           palette.white,
+  success:         palette.success,
+  info:            palette.info,
+  xpPurple:        palette.xpPurple,
+  xpPurpleSoft:    palette.xpPurpleSoft,
 } as const;
 
 export type ColorsKey = keyof typeof colors;

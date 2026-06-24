@@ -10,7 +10,7 @@ import {
   GeoPoint
 } from '@appTypes/index';
 import { getLevelFromPoints, getLevelProgress, BADGES } from '@constants/index';
-
+export { useAuthStore } from './authStore';
 interface AppState {
   // Auth
   isAuthenticated: boolean;
