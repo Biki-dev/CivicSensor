@@ -13,6 +13,10 @@ import {
   DirectMessage,
   Conversation,
   UserFollow,
+  Authority,
+  WorkOrder,
+  WorkOrderStatus,
+  AuthorityResponse,
 } from '@appTypes/index';
 import { getLevelFromPoints, getLevelProgress, BADGES } from '@constants/index';
 export { useAuthStore } from './authStore';
@@ -36,6 +40,8 @@ interface AppState {
   directMessages: DirectMessage[];
   followers: UserFollow[];      // users following the current user
   following: UserFollow[];       // users the current user follows
+  authorities: Authority[];
+  workOrders: WorkOrder[];
   
   // Actions
   login: (email: string, password: string) => Promise<void>;
@@ -68,6 +74,11 @@ interface AppState {
   followUser: (userId: string, followerName: string) => void;
   unfollowUser: (userId: string) => void;
   getFollowCount: (userId: string) => { followers: number; following: number };
+  // Authority integration
+  assignIssueToAuthority: (issueId: string, authorityId: string, note?: string) => void;
+  createWorkOrder: (issueId: string, authorityId: string, note?: string) => string;
+  updateIssueStatusFromAuthority: (workOrderId: string, status: WorkOrderStatus, message?: string) => void;
+  fetchAuthorityStatus: (authorityId: string) => Promise<AuthorityResponse | null>;
   
   // Notifications
   markAllNotificationsRead: () => void;
@@ -258,6 +269,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   directMessages: [],
   followers: [],
   following: [],
+  authorities: [],
+  workOrders: [],
+
   
   restoreSession: async () => {
     try {
@@ -439,6 +453,103 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       return { issues: updatedIssues };
     });
+  },
+
+  // Authority methods
+  assignIssueToAuthority: (issueId, authorityId, note) => {
+    const authority = get().authorities.find(a => a.id === authorityId);
+    if (!authority) return;
+
+    set(state => {
+      const updatedIssues = state.issues.map(issue => {
+        if (issue.id !== issueId) return issue;
+        const updated: Issue = {
+          ...issue,
+          assignedAuthorityId: authority.id,
+          assignedAuthorityName: authority.name,
+          status: 'in_review' as Issue['status'],
+          updatedAt: new Date().toISOString(),
+        };
+
+        return updated;
+      });
+
+      return { issues: updatedIssues };
+    });
+
+    // create work order
+    get().createWorkOrder(issueId, authorityId, note);
+  },
+
+  createWorkOrder: (issueId, authorityId, note) => {
+    const authority = get().authorities.find(a => a.id === authorityId);
+    const workOrderId = `wo-${Date.now()}`;
+    const newWO: WorkOrder = {
+      id: workOrderId,
+      issueId,
+      authorityId,
+      authorityName: authority ? authority.name : 'Unknown',
+      status: 'open',
+      notes: note,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    set(state => ({ workOrders: [newWO, ...state.workOrders] }));
+
+    // Notify reporter
+    const issue = get().issues.find(i => i.id === issueId);
+    if (issue) {
+      const notif: AppNotification = {
+        id: `notif-wo-${Date.now()}`,
+        type: 'community_update',
+        title: 'Work Order Created',
+        body: `A work order was created with ${newWO.authorityName} for your report: ${issue.title}`,
+        referenceId: newWO.id,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      };
+      set(state => ({ notifications: [notif, ...state.notifications] }));
+    }
+
+    return workOrderId;
+  },
+
+  updateIssueStatusFromAuthority: (workOrderId, status, message) => {
+    set(state => {
+      const updatedWOs = state.workOrders.map(wo => {
+        if (wo.id !== workOrderId) return wo;
+        return { ...wo, status, notes: message || wo.notes, updatedAt: new Date().toISOString(), resolvedAt: status === 'closed' ? new Date().toISOString() : undefined };
+      });
+
+      const updatedIssues = state.issues.map(issue => {
+        const wo = updatedWOs.find(w => w.issueId === issue.id && w.id === workOrderId);
+        if (!wo) return issue;
+        return {
+          ...issue,
+          status: wo.status === 'closed' ? 'resolved' : (wo.status === 'in_progress' ? 'in_progress' : issue.status),
+          updatedAt: new Date().toISOString(),
+          resolvedAt: wo.status === 'closed' ? new Date().toISOString() : issue.resolvedAt,
+        };
+      });
+
+      return { workOrders: updatedWOs, issues: updatedIssues };
+    });
+  },
+
+  fetchAuthorityStatus: async (authorityId) => {
+    // In this mock implementation we simply return the latest work order update for the authority
+    const wo = get().workOrders.find(w => w.authorityId === authorityId);
+    if (!wo) return null;
+    const resp: AuthorityResponse = {
+      workOrderId: wo.id,
+      issueId: wo.issueId,
+      authorityId: wo.authorityId,
+      status: wo.status,
+      message: wo.notes,
+      updatedAt: wo.updatedAt,
+    };
+    return resp;
   },
   
   markAllNotificationsRead: () => {

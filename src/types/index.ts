@@ -154,6 +154,47 @@ export interface Issue {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AUTHORITY / CITY INTEGRATION (PHASE 5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface Authority {
+  id: string;
+  name: string;
+  department: string;
+  contactEmail?: string;
+  phone?: string;
+  website?: string;
+  jurisdiction: string; // city or neighborhood
+  activeWorkOrders: number;
+  resolvedWorkOrders: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type WorkOrderStatus = 'open' | 'in_progress' | 'closed' | 'rejected';
+
+export interface WorkOrder {
+  id: string;
+  issueId: string;
+  authorityId: string;
+  authorityName: string;
+  status: WorkOrderStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+}
+
+export interface AuthorityResponse {
+  workOrderId: string;
+  issueId: string;
+  authorityId: string;
+  status: WorkOrderStatus;
+  message?: string;
+  updatedAt: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GAMIFICATION
 // ─────────────────────────────────────────────────────────────────────────────
 
