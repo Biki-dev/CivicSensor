@@ -223,6 +223,35 @@ const INITIAL_CHALLENGES: Challenge[] = [
   }
 ];
 
+const INITIAL_AUTHORITIES: Authority[] = [
+  {
+    id: 'auth-1',
+    name: 'City Power & Light Dept',
+    department: 'Public Utilities',
+    contactEmail: 'power@metrocity.gov',
+    phone: '+1-555-0123',
+    website: 'https://city.metro/power',
+    jurisdiction: 'Metro City',
+    activeWorkOrders: 12,
+    resolvedWorkOrders: 240,
+    createdAt: new Date(Date.now() - 365 * 86400000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'auth-2',
+    name: 'Department of Streets & Sanitation',
+    department: 'Sanitation',
+    contactEmail: 'streets@metrocity.gov',
+    phone: '+1-555-0456',
+    website: 'https://city.metro/streets',
+    jurisdiction: 'Metro City',
+    activeWorkOrders: 6,
+    resolvedWorkOrders: 180,
+    createdAt: new Date(Date.now() - 400 * 86400000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 const DEFAULT_PROFILE = (name: string, email: string, neighborhood: string): UserProfile => {
   const points = 75;
   const level = getLevelFromPoints(points);
@@ -269,7 +298,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   directMessages: [],
   followers: [],
   following: [],
-  authorities: [],
+  authorities: INITIAL_AUTHORITIES,
   workOrders: [],
 
   

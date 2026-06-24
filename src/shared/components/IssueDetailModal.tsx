@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { typography } from '@theme/typography';
 import { ISSUE_CATEGORIES } from '@constants/index';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
+import { useAppStore } from '@store/index';
 
 interface IssueDetailModalProps {
   issue: Issue;
@@ -58,6 +59,9 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   };
 
   const statusColors = getStatusColor(issue.status);
+  const { authorities, assignIssueToAuthority, createWorkOrder } = useAppStore();
+  const [showAssignOptions, setShowAssignOptions] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -245,6 +249,49 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             </View>
           </View>
         )}
+
+        {/* Assign to Authority */}
+        <View style={{ marginTop: 12 }}>
+          <TouchableOpacity
+            style={[styles.verifyActionBtn, { marginBottom: 8 }]}
+            onPress={() => setShowAssignOptions(s => !s)}
+          >
+            <LinearGradient
+              colors={[colors.brandAccent, '#00A896']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.verifyGradient}
+            >
+              <Text style={styles.verifyActionText}>ASSIGN TO AUTHORITY</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {showAssignOptions && (
+            <View style={{ backgroundColor: colors.bgCard, borderRadius: radius.card, padding: spacing.sm }}>
+              {authorities.length === 0 ? (
+                <Text style={{ color: colors.textMuted }}>No authorities available.</Text>
+              ) : (
+                authorities.map(auth => (
+                  <TouchableOpacity
+                    key={auth.id}
+                    style={{ paddingVertical: spacing.sm }}
+                    onPress={async () => {
+                      if (assigning) return;
+                      setAssigning(true);
+                      // assign and create work order
+                      assignIssueToAuthority(issue.id, auth.id, `Assigned from app`);
+                      setAssigning(false);
+                      setShowAssignOptions(false);
+                    }}
+                  >
+                    <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{auth.name}</Text>
+                    <Text style={{ color: colors.textSecondary }}>{auth.department}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
