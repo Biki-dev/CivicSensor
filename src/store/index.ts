@@ -556,9 +556,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Polling control for work orders — calls authorityService.pollWorkOrderStatus
   startWorkOrderPoller: () => {
     // keep a single interval per app instance
-    // store interval id in closure
-    // @ts-ignore
-    if ((global as any).__civic_workorder_poller) return;
+    if (globalThis.__civic_workorder_poller) return;
     // poll every 15s
     const id = setInterval(async () => {
       const openWOs = get().workOrders.filter(w => w.status === 'open' || w.status === 'in_progress');
@@ -573,17 +571,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       }
     }, 15000);
-    // @ts-ignore
-    (global as any).__civic_workorder_poller = id;
+    globalThis.__civic_workorder_poller = id;
   },
 
   stopWorkOrderPoller: () => {
-    // @ts-ignore
-    const id = (global as any).__civic_workorder_poller;
+    const id = globalThis.__civic_workorder_poller;
     if (id) {
-      clearInterval(id);
-      // @ts-ignore
-      (global as any).__civic_workorder_poller = null;
+      clearInterval(id as ReturnType<typeof setInterval>);
+      globalThis.__civic_workorder_poller = null;
     }
   },
 
