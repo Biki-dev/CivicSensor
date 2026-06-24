@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { MainTabParamList } from '@appTypes/index';
 import { colors, palette } from '@theme/colors';
 import { typography } from '@theme/typography';
@@ -12,6 +13,17 @@ import FeedScreen    from '@screens/FeedScreen';
 import ReportScreen  from '@screens/ReportScreen';
 import MapScreen     from '@screens/MapScreen';
 import ProfileScreen from '@screens/ProfileScreen';
+import AuthorityListScreen from '@screens/AuthorityListScreen';
+import AuthorityDetailScreen from '@screens/AuthorityDetailScreen';
+
+const AuthoritiesStack = createNativeStackNavigator();
+
+const AuthoritiesStackScreen: React.FC = () => (
+  <AuthoritiesStack.Navigator screenOptions={{ headerShown: true }}>
+    <AuthoritiesStack.Screen name="AuthorityList" component={AuthorityListScreen} options={{ title: 'Authorities' }} />
+    <AuthoritiesStack.Screen name="AuthorityDetail" component={AuthorityDetailScreen} options={{ title: 'Authority' }} />
+  </AuthoritiesStack.Navigator>
+);
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -21,6 +33,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, { active: string; inactive: stri
   Report:  { active: '📍',  inactive: '📍',  label: 'Report'  },
   Feed:    { active: '📋',  inactive: '📋',  label: 'Feed'    },
   Map:     { active: '🗺️',  inactive: '🗺️',  label: 'Map'     },
+  Authorities: { active: '🏛️', inactive: '🏛️', label: 'Authorities' },
   Profile: { active: '👤',  inactive: '👤',  label: 'Profile' },
 };
 
@@ -92,6 +105,11 @@ export const MainTabNavigator: React.FC = () => (
       name="Map"
       component={MapScreen}
       options={{ tabBarLabel: 'Map' }}
+    />
+    <Tab.Screen
+      name="Authorities"
+      component={AuthoritiesStackScreen}
+      options={{ tabBarLabel: 'Authorities' }}
     />
     <Tab.Screen
       name="Profile"

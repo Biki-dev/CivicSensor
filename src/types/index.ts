@@ -434,6 +434,7 @@ export type MainTabParamList = {
   Report: undefined;
   Feed: undefined;
   Map: undefined;
+  Authorities: undefined;
   Profile: undefined;
 };
 
